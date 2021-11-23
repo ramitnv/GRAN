@@ -28,7 +28,11 @@ from utils.dist_helper import compute_mmd, gaussian_emd, gaussian, emd, gaussian
 from utils.vis_helper import draw_graph_list, draw_graph_list_separate
 from utils.data_parallel import DataParallel
 
-
+def to_float(x):
+  if isinstance(x, float):
+    return x
+  else:
+    float(x.data.cpu().numpy())
 try:
   ###
   # workaround for solving the issue of multi-worker
@@ -102,7 +106,7 @@ class GranRunner(object):
     self.num_gpus = len(self.gpus)
     self.is_shuffle = False
 
-    assert self.use_gpu == True
+    # assert self.use_gpu == True
 
     if self.train_conf.is_resume:
       self.config.save_dir = self.train_conf.resume_dir
@@ -256,7 +260,7 @@ class GranRunner(object):
         avg_train_loss /= float(self.dataset_conf.num_fwd_pass)
         
         # reduce
-        train_loss = float(avg_train_loss.data.cpu().numpy())
+        train_loss = to_float(avg_train_loss)
         
         self.writer.add_scalar('train_loss', train_loss, iter_count)
         results['train_loss'] += [train_loss]
@@ -308,7 +312,7 @@ class GranRunner(object):
           input_dict['num_nodes_pmf']=self.num_nodes_pmf_train
           A_tmp = model(input_dict)
           gen_run_time += [time.time() - start_time]
-          A_pred += [aa.data.cpu().numpy() for aa in A_tmp]
+          A_pred += [to_float(aa) for aa in A_tmp]
           num_nodes_pred += [aa.shape[0] for aa in A_tmp]
 
       logger.info('Average test time per mini-batch = {}'.format(
